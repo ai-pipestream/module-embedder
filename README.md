@@ -1,0 +1,3 @@
+# module-embedder
+
+Vector embeddings
