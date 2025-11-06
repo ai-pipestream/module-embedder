@@ -31,7 +31,7 @@ dependencies {
     implementation 'io.pipeline:data-util'
     implementation 'io.pipeline:dynamic-grpc'
     implementation 'io.pipeline:dynamic-grpc-registration-clients'
-
+    implementation 'io.pipeline:quarkus-pipeline-devservices:1.0.0-SNAPSHOT'
 
     // DJL (Deep Java Library) for ML inference
     implementation libs.djl.huggingface.tokenizers
