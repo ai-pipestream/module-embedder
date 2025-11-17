@@ -64,7 +64,7 @@ dependencies {
 
 }
 
-group 'ai.pipestream'
+group 'ai.pipestream.module'
 version "${scmVersion.version}"
 
 java {
@@ -122,10 +122,10 @@ processTestResources {
 // Publishing configuration
 publishing {
     publications {
-        //noinspection GroovyAssignabilityCheck
-        maven(MavenPublication) { publication ->
+        // Use a named publication to match signing configuration below
+        create('maven', MavenPublication) { publication ->
             from components.java
-            //noinspection GroovyAssignabilityCheck
+            // Include Quarkus runner JAR for container deployments
             artifact(file("${buildDir}/quarkus-app/quarkus-run.jar")) { artifact ->
                 artifact.classifier = 'runner'
                 artifact.builtBy tasks.named('quarkusBuild')
@@ -145,8 +145,7 @@ publishing {
                 developers {
                     developer {
                         id.set('krickert')
-                        email.set('krickert@rokkon.com')
-                        name.set('Pipeline Engine Team')
+                        name.set('Pipestream Engine Team')
                     }
                 }
 

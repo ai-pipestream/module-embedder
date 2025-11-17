@@ -291,3 +291,11 @@ build
 .vscode/
 *.iml
 */build/
+bin
+.quarkus
+.claude
+CLAUDE.md
+.dev-helpers/
+bin/
+out/
+target/
