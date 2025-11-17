@@ -1,4 +1,4 @@
-package io.pipeline.module.embedder.service;
+package ai.pipestream.module.embedder.service;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

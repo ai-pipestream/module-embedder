@@ -1,6 +1,6 @@
-package io.pipeline.module.embedder;
+package ai.pipestream.module.embedder;
 
-import io.pipeline.data.module.PipeStepProcessor;
+import ai.pipestream.data.module.PipeStepProcessor;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 

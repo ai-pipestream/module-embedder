@@ -1,13 +1,13 @@
-package io.pipeline.module.embedder;
+package ai.pipestream.module.embedder;
 
+import ai.pipestream.data.module.*;
+import ai.pipestream.data.v1.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import com.google.protobuf.util.JsonFormat;
-import io.pipeline.data.v1.*;
-import io.pipeline.data.module.*;
-import io.pipeline.module.embedder.service.EmbedderOptions;
-import io.pipeline.module.embedder.service.ReactiveVectorizer;
+import ai.pipestream.module.embedder.service.EmbedderOptions;
+import ai.pipestream.module.embedder.service.ReactiveVectorizer;
 import io.quarkus.grpc.GrpcService;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.mutiny.Uni;

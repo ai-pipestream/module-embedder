@@ -1,15 +1,37 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+import org.gradle.plugins.signing.Sign
+
 plugins {
+    id 'pl.allegro.tech.build.axion-release' version '1.21.0'
     alias(libs.plugins.java)
     alias(libs.plugins.quarkus)
     alias(libs.plugins.maven.publish)
+    id 'signing'
+    id 'com.gradleup.nmcp' version '1.2.1'
 }
 
+scmVersion {
+    tag {
+        prefix = 'v'
+    }
+    checks {
+        uncommittedChanges = false
+        aheadOfRemote = false
+        snapshotDependencies = false
+    }
+}
 
+def pipelineBomVersion = findProperty('pipelineBomVersion') ?: '0.2.2'
 
 dependencies {
-    implementation platform('io.pipeline:pipeline-bom:1.0.0-SNAPSHOT')
-    implementation 'io.quarkus:quarkus-grpc'
-    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-container-image-docker'
+    // Import pipeline BOM to align all managed versions
+    implementation platform("ai.pipestream:pipeline-bom:${pipelineBomVersion}")
+
+    // Quarkus dependencies
+    implementation libs.quarkus.grpc
+    implementation libs.quarkus.arc
+
     implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-smallrye-stork'
     
@@ -25,30 +47,31 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
 
-    implementation 'io.pipeline:grpc-stubs:1.0.0-SNAPSHOT'
-    implementation 'io.pipeline:pipeline-commons'
-    implementation 'io.pipeline:pipeline-api'
-    implementation 'io.pipeline:data-util'
-    implementation 'io.pipeline:dynamic-grpc'
-    implementation 'io.pipeline:dynamic-grpc-registration-clients'
-    implementation 'io.pipeline:quarkus-pipeline-devservices:1.0.0-SNAPSHOT'
-
     // DJL (Deep Java Library) for ML inference
     implementation libs.djl.huggingface.tokenizers
     implementation libs.djl.pytorch.model.zoo
     implementation libs.djl.pytorch.jni
+
+    // Pipestream libraries - versions managed entirely by the BOM/catalog
+    implementation libs.pipestream.compose.devservices
+    implementation libs.pipestream.grpc.stubs
+    implementation libs.pipestream.commons
+    implementation libs.pipestream.dynamic.grpc
+    implementation libs.pipestream.data.util
 
     // Apache Commons for utilities
     implementation libs.commons.lang3
 
 }
 
-group 'io.pipeline.module'
-version '1.0.0-SNAPSHOT'
+group 'ai.pipestream'
+version "${scmVersion.version}"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
     targetCompatibility = JavaVersion.VERSION_21
+    withJavadocJar()
+    withSourcesJar()
 }
 
 test {
@@ -65,6 +88,37 @@ compileTestJava {
     options.encoding = 'UTF-8'
 }
 
+// Configure Javadoc task
+tasks.withType(Javadoc).configureEach { task ->
+    def opts = task.options
+    opts.encoding = 'UTF-8'
+    opts.charSet = 'UTF-8'
+    opts.locale = 'en'
+    // Suppress missing Javadoc warnings for now
+    opts.addStringOption('Xdoclint:-missing', '-quiet')
+    // Exclude internal packages
+    task.exclude('**/internal/**', '**/impl/**', '**/test/**')
+}
+
+
+// Enable resource filtering to replace @version@ in application.properties
+// Use @ delimiters to avoid conflicts with ${} runtime property placeholders
+processResources {
+    filesMatching('**/*.properties') {
+        filter(ReplaceTokens, tokens: [
+                version: project.version.toString()
+        ])
+    }
+}
+
+processTestResources {
+    filesMatching('**/*.properties') {
+        filter(ReplaceTokens, tokens: [
+                version: project.version.toString()
+        ])
+    }
+}
+
 // Publishing configuration
 publishing {
     publications {
@@ -79,12 +133,12 @@ publishing {
             pom { pom ->
                 name.set('Module Embedder')
                 description.set('ML embedding generation module using DJL and PyTorch for the Pipeline platform')
-                url.set('https://github.com/io-pipeline/module-embedder')
+                url.set('https://github.com/ai-pipestream/module-embedder')
 
                 licenses {
                     license {
-                        name.set('Apache License 2.0')
-                        url.set('https://www.apache.org/licenses/LICENSE-2.0')
+                        name.set('MIT License')
+                        url.set('https://opensource.org/license/mit')
                     }
                 }
 
@@ -97,9 +151,49 @@ publishing {
                 }
 
                 scm {
-                    connection.set('scm:git:git://github.com/io-pipeline/module-embedder.git')
-                    developerConnection.set('scm:git:ssh://github.com/io-pipeline/module-embedder.git')
-                    url.set('https://github.com/io-pipeline/module-embedder')
+                    connection.set('scm:git:git://github.com/ai-pipestream/module-embedder.git')
+                    developerConnection.set('scm:git:ssh://github.com/ai-pipestream/module-embedder.git')
+                    url.set('https://github.com/ai-pipestream/module-embedder')
+                }
+
+                // Ensure BOM/platform dependency is included in dependencyManagement
+                // This ensures Maven Central can resolve dependency versions from the BOM
+                withXml {
+                    def projectNode = asNode()
+                    def dependencyManagementNodes = projectNode.get('dependencyManagement')
+                    def dmNode
+                    def depsNode
+
+                    if (dependencyManagementNodes.isEmpty()) {
+                        // Create dependencyManagement and dependencies nodes
+                        dmNode = projectNode.appendNode('dependencyManagement')
+                        depsNode = dmNode.appendNode('dependencies')
+                    } else {
+                        // Get the first dependencyManagement node
+                        dmNode = dependencyManagementNodes[0]
+                        // Check if it has a dependencies child
+                        def dependenciesNodes = dmNode.get('dependencies')
+                        if (dependenciesNodes.isEmpty()) {
+                            depsNode = dmNode.appendNode('dependencies')
+                        } else {
+                            depsNode = dependenciesNodes[0]
+                        }
+                    }
+
+                    // Check if pipeline-bom already exists
+                    def existingBom = depsNode.children().find { dep ->
+                        dep.groupId?.text() == 'ai.pipestream' &&
+                                dep.artifactId?.text() == 'pipeline-bom'
+                    }
+
+                    if (!existingBom) {
+                        def bomDependency = depsNode.appendNode('dependency')
+                        bomDependency.appendNode('groupId', 'ai.pipestream')
+                        bomDependency.appendNode('artifactId', 'pipeline-bom')
+                        bomDependency.appendNode('version', pipelineBomVersion)
+                        bomDependency.appendNode('type', 'pom')
+                        bomDependency.appendNode('scope', 'import')
+                    }
                 }
             }
         }
@@ -109,26 +203,46 @@ publishing {
         // Publish to Maven Local for development
         mavenLocal()
 
-        // Publish to Reposilite (primary artifact repository)
-        maven {
-            name = "Reposilite"
-            url = uri(version.toString().endsWith('-SNAPSHOT')
-                ? "https://maven.rokkon.com/snapshots"
-                : "https://maven.rokkon.com/releases")
-            credentials {
-                username = project.findProperty("reposilite.user") ?: System.getenv("REPOS_USER") ?: "admin"
-                password = project.findProperty("reposilite.token") ?: System.getenv("REPOS_PAT")
+        // Conditionally add GitHub Packages repository when credentials are available
+        def ghRepo = System.getenv('GITHUB_REPOSITORY') ?: 'ai-pipestream/module-embedder'
+        def ghActor = System.getenv('GITHUB_ACTOR') ?: (project.findProperty('gpr.user') ?: System.getenv('GPR_USER'))
+        def ghToken = System.getenv('GITHUB_TOKEN') ?: (project.findProperty('gpr.key') ?: System.getenv('GPR_TOKEN'))
+        if (ghActor && ghToken) {
+            maven {
+                name = 'GitHubPackages'
+                url = uri("https://maven.pkg.github.com/${ghRepo}")
+                credentials {
+                    username = ghActor
+                    password = ghToken
+                }
             }
         }
+    }
+}
 
-        // Publish to Gitea Maven registry (backup)
-        maven {
-            name = "Gitea"
-            url = uri("https://git.rokkon.com/api/packages/io-pipeline/maven")
-            credentials {
-                username = project.findProperty("gitea.user") ?: System.getenv("GIT_USER") ?: "krickert"
-                password = project.findProperty("gitea.token") ?: System.getenv("GIT_PAT")
+signing {
+    // Read org-level GPG secrets directly, so runnable apps don't need extra env mapping
+    def signingKey = System.getenv("GPG_PRIVATE_KEY")
+    def signingPassword = System.getenv("GPG_PASSPHRASE")
+
+    if (signingKey && signingPassword) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign publishing.publications.maven
+    }
+}
+
+// Ensure all signing tasks run before nmcp bundles and publishes artifacts
+afterEvaluate {
+    tasks.matching { it.name.startsWith("nmcpZipAllPublications") || it.name.startsWith("nmcpPublishAllPublicationsToCentralPortal") }
+            .configureEach { nmcpTask ->
+                nmcpTask.dependsOn(tasks.withType(Sign))
             }
-        }
+}
+
+nmcp {
+    publishAllPublicationsToCentralPortal {
+        username = providers.environmentVariable("MAVEN_CENTRAL_USERNAME")
+        password = providers.environmentVariable("MAVEN_CENTRAL_PASSWORD")
+        publishingType = "AUTOMATIC"
     }
 }

@@ -1,13 +1,9 @@
-package io.pipeline.module.embedder;
+package ai.pipestream.module.embedder;
 
-import io.pipeline.data.v1.PipeDoc;
-import io.pipeline.data.v1.SearchMetadata;
-import io.pipeline.data.v1.SemanticProcessingResult;
-import io.pipeline.data.v1.SemanticChunk;
-import io.pipeline.data.v1.ChunkEmbedding;
-import io.pipeline.data.module.*;
-import io.pipeline.module.embedder.service.EmbedderOptions;
-import io.pipeline.module.embedder.service.EmbeddingModel;
+import ai.pipestream.data.module.*;
+import ai.pipestream.data.v1.*;
+import ai.pipestream.module.embedder.service.EmbedderOptions;
+import ai.pipestream.module.embedder.service.EmbeddingModel;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;

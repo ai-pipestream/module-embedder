@@ -1,4 +1,4 @@
-package io.pipeline.module.embedder.service;
+package ai.pipestream.module.embedder.service;
 
 import io.smallrye.mutiny.Uni;
 

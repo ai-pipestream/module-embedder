@@ -1,10 +1,10 @@
-package io.pipeline.module.embedder;
+package ai.pipestream.module.embedder;
 
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
-import io.pipeline.data.v1.*;
-import io.pipeline.data.module.*;
-import io.pipeline.data.util.proto.ProtobufTestDataHelper;
+import ai.pipestream.data.v1.*;
+import ai.pipestream.data.module.*;
+import ai.pipestream.data.util.proto.ProtobufTestDataHelper;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import org.junit.jupiter.api.Test;
 import org.jboss.logging.Logger;

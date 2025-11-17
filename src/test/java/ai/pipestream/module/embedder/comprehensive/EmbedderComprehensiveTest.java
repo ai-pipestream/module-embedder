@@ -1,12 +1,12 @@
-package io.pipeline.module.embedder.comprehensive;
+package ai.pipestream.module.embedder.comprehensive;
 
+import ai.pipestream.common.util.ProcessingBuffer;
+import ai.pipestream.common.util.ProcessingBufferFactory;
+import ai.pipestream.data.module.*;
+import ai.pipestream.data.util.proto.ProtobufTestDataHelper;
+import ai.pipestream.data.v1.PipeDoc;
 import com.google.protobuf.Struct;
 import com.google.protobuf.util.JsonFormat;
-import io.pipeline.common.util.ProcessingBuffer;
-import io.pipeline.common.util.ProcessingBufferFactory;
-import io.pipeline.data.v1.PipeDoc;
-import io.pipeline.data.module.*;
-import io.pipeline.data.util.proto.ProtobufTestDataHelper;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
